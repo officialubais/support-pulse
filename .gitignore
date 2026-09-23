@@ -214,4 +214,7 @@ temp_test/
 test_rec.py
 *.wav
 *.mp4
+!demo.mp4
+!demo.webm
+
 

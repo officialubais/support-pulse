@@ -4,6 +4,11 @@ SupportPulse is an intelligent, multi-modal customer support agent built with th
 
 ![SupportPulse Demo](./demo.gif)
 
+🎥 **Demo Media**:
+- 🎞️ **Inline Preview**: [demo.gif](./demo.gif)
+- 🎵 **Full Demo Video with Lo-Fi Music (MP4)**: [demo.mp4](./demo.mp4)
+- 🎵 **Full Demo Video with Lo-Fi Music (WEBM)**: [demo.webm](./demo.webm)
+
 ---
 
 ## 🚀 Key Implemented Capabilities
