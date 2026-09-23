@@ -650,7 +650,12 @@ function buildNode(id, comps, seen) {
       const hint = String(props.usageHint || "body").toLowerCase();
       if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(hint)) t.classList.add("a2-" + hint);
       else if (hint === "caption") t.classList.add("a2-caption");
-      t.textContent = boundStr(props.text);
+      const val = boundStr(props.text);
+      if (/https?:\/\/[^\s\)]+\.(?:mp4|webm|png|jpg|jpeg|webp)/i.test(val)) {
+        t.innerHTML = renderMarkdownAndMedia(val);
+      } else {
+        t.textContent = val;
+      }
       return t;
     }
     case "Divider":
@@ -663,6 +668,29 @@ function buildNode(id, comps, seen) {
       img.alt = boundStr(props.alt) || "";
       img.onclick = () => openLightbox(src);
       return img;
+    }
+    case "Video":
+    case "Media": {
+      const src = boundStr(props.url || props.src);
+      if (!/^https?:\/\//i.test(src)) return null;
+      const wrap = el("div");
+      wrap.style.margin = "0.75rem 0";
+      const vid = el("video");
+      vid.controls = true;
+      vid.autoplay = true;
+      vid.loop = true;
+      vid.muted = true;
+      vid.style.maxWidth = "100%";
+      vid.style.borderRadius = "12px";
+      vid.style.boxShadow = "var(--shadow-md)";
+      vid.style.border = "1px solid var(--border)";
+      vid.style.display = "block";
+      const source = el("source");
+      source.src = src;
+      source.type = "video/mp4";
+      vid.appendChild(source);
+      wrap.appendChild(vid);
+      return wrap;
     }
     case "Icon": {
       const s = el("span", "material-symbols-outlined"); s.textContent = iconName(boundStr(props.name) || props.name); return s;
