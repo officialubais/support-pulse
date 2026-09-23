@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SupportPulse — E-Commerce Customer Success AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div class="brand-text">
+          <h2>SupportPulse</h2>
+          <span>AI Customer Success</span>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-indicator online"></div>
+        <div class="status-info">
+          <span class="status-title">Agent Status</span>
+          <span class="status-value">Active (ADK + Gemini)</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Sample Orders</h3>
+        <div class="sample-list">
+          <div class="sample-item" onclick="insertPrompt('What is the status of order ORD-1001?')">
+            <span class="badge delivered">ORD-1001</span>
+            <span class="sample-desc">Headphones ($199.99)</span>
+          </div>
+          <div class="sample-item" onclick="insertPrompt('Where is my package ORD-1002?')">
+            <span class="badge transit">ORD-1002</span>
+            <span class="sample-desc">Keyboard ($149.50)</span>
+          </div>
+          <div class="sample-item" onclick="insertPrompt('Check order status for ORD-1003')">
+            <span class="badge processing">ORD-1003</span>
+            <span class="sample-desc">Gaming Monitor ($499)</span>
+          </div>
+          <div class="sample-item" onclick="insertPrompt('Can I return ORD-1004?')">
+            <span class="badge expired">ORD-1004</span>
+            <span class="sample-desc">Fitness Watch ($129)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Quick Actions</h3>
+        <div class="action-buttons">
+          <button class="quick-btn" onclick="insertPrompt('Check stock for SKU-MONITOR')">📦 Check Inventory</button>
+          <button class="quick-btn" onclick="insertPrompt('I want to return ORD-1001 because it arrived damaged')">🔄 Request Refund</button>
+          <button class="quick-btn" onclick="insertPrompt('Create a support ticket for alice@example.com regarding wrong item received')">🎫 Escalate Ticket</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Chat Workspace -->
+    <main class="chat-workspace">
+      <!-- Header -->
+      <header class="chat-header">
+        <div class="header-info">
+          <h1>Customer Success Console</h1>
+          <p>Instant order tracking, inventory checks, refund processing, and support escalation</p>
+        </div>
+        <div class="header-actions">
+          <button id="clear-chat-btn" class="secondary-btn">Clear Chat</button>
+        </div>
+      </header>
+
+      <!-- Message History -->
+      <div id="chat-messages" class="chat-messages">
+        <!-- Welcome Message -->
+        <div class="message assistant">
+          <div class="avatar">⚡</div>
+          <div class="message-content">
+            <p>Welcome to <strong>SupportPulse</strong>! 👋 I am your automated Customer Success Assistant.</p>
+            <p>How can I assist you today?</p>
+            <div class="suggestion-pills">
+              <button class="pill" onclick="sendQuickMessage('What is the status of order ORD-1001?')">📦 Track ORD-1001</button>
+              <button class="pill" onclick="sendQuickMessage('Is the Ultra-Wide Gaming Monitor in stock?')">🖥️ Check Monitor Stock</button>
+              <button class="pill" onclick="sendQuickMessage('I want to return ORD-1001 because it is defective')">💸 Process Return</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="chat-input-area">
+        <form id="chat-form" class="input-form">
+          <input type="text" id="user-input" placeholder="Ask about an order (e.g. ORD-1001), check stock, or request a return..." autocomplete="off">
+          <button type="submit" id="send-btn" class="send-btn">
+            <span>Send</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
