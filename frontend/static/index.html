@@ -1276,17 +1276,35 @@ function loadSessions() {
     else sessions = [];
   } catch (e) {
     console.error("Error loading sessions:", e);
+    sessions = [];
+  }
+
+  // Session Persistence & Migration:
+  // If no sessions exist for this user account yet, check for legacy or global saved sessions!
+  if (!sessions || !Array.isArray(sessions) || !sessions.length) {
+    try {
+      const globalRaw = localStorage.getItem("supportpulse_sessions_v1");
+      if (globalRaw) {
+        const parsed = JSON.parse(globalRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          sessions = parsed;
+        }
+      }
+    } catch (e) {
+      console.error("Error checking legacy sessions:", e);
+    }
   }
 
   if (!sessions || !Array.isArray(sessions) || !sessions.length) {
     sessions = [];
     createNewSession(false);
   } else {
-    activeSessionId = localStorage.getItem(activeKey);
+    activeSessionId = localStorage.getItem(activeKey) || sessions[0].id;
     if (!sessions.find(s => s.id === activeSessionId)) {
       activeSessionId = sessions[0].id;
     }
   }
+  saveSessions();
   renderSessionList();
   renderActiveSessionMessages();
 }
@@ -1297,6 +1315,8 @@ function saveSessions() {
   try {
     localStorage.setItem(sessionKey, JSON.stringify(sessions));
     localStorage.setItem(activeKey, activeSessionId);
+    // Also update global store so chats are never lost
+    localStorage.setItem("supportpulse_sessions_v1", JSON.stringify(sessions));
   } catch (e) {
     console.error("Error saving sessions:", e);
   }
