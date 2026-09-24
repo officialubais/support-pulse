@@ -981,6 +981,39 @@
     <div class="auth-title">Welcome to SupportPulse</div>
     <div class="auth-subtitle">Sign in to save your sessions, memory bank, and multi-modal support history across devices.</div>
 
+    <!-- Email & Password Authentication Form -->
+    <form id="auth-form" onsubmit="handleAuthSubmit(event)" style="margin-top: 1rem; text-align: left; display: flex; flex-direction: column; gap: 0.6rem; width: 100%;">
+      <div id="auth-error-alert" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.8rem; font-weight: 500;"></div>
+      
+      <div id="auth-name-group" style="display: none; flex-direction: column; gap: 0.2rem;">
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);">Full Name</label>
+        <input type="text" id="auth-name" placeholder="John Doe" style="padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-primary); font-size: 0.85rem;">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);">Email Address</label>
+        <input type="email" id="auth-email" required placeholder="name@example.com" style="padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-primary); font-size: 0.85rem;">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);">Password</label>
+        <input type="password" id="auth-password" required placeholder="••••••••" style="padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text-primary); font-size: 0.85rem;">
+      </div>
+
+      <button type="submit" id="auth-submit-btn" style="margin-top: 0.4rem; padding: 0.6rem; border-radius: 6px; background: var(--accent-gradient); color: #fff; border: none; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+        <span>Sign In</span>
+      </button>
+    </form>
+
+    <div style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+      <span id="auth-toggle-text">Don't have an account?</span>
+      <a href="#" id="auth-toggle-link" onclick="toggleAuthMode(event)" style="color: var(--accent); font-weight: 600; text-decoration: none; margin-left: 0.25rem;">Sign Up</a>
+    </div>
+
+    <div class="auth-divider" style="margin: 0.8rem 0;">
+      <span>OR</span>
+    </div>
+
     <div class="auth-btn-stack">
       <!-- Google Sign In Button -->
       <button type="button" class="auth-provider-btn auth-btn-google" onclick="loginWithGoogle()">
@@ -1001,35 +1034,11 @@
         <span>Sign in with Apple</span>
       </button>
 
-      <div class="auth-divider">
-        <span>OR</span>
-      </div>
-
       <!-- Guest Button -->
       <button type="button" class="auth-provider-btn auth-btn-guest" onclick="loginAsGuest()">
         <span class="material-symbols-outlined" style="font-size:1.1rem;">person</span>
         <span>Continue as Guest</span>
       </button>
-
-      <!-- Advanced OAuth Credentials Accordion -->
-      <div style="margin-top: 1rem; width: 100%; border-top: 1px dashed var(--border); padding-top: 0.75rem; text-align: left;">
-        <details>
-          <summary style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
-            <span class="material-symbols-outlined" style="font-size: 0.95rem;">settings</span>
-            <span>Configure OAuth Credentials (GCP / Apple)</span>
-          </summary>
-          <div style="margin-top: 0.6rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.8rem;">
-            <label style="display: flex; flex-direction: column; gap: 0.2rem; color: var(--text-secondary);">
-              <span>Google OAuth Client ID:</span>
-              <input id="cfg-google-id" placeholder="e.g. 12345-abc.apps.googleusercontent.com" style="padding: 0.4rem 0.6rem; font-size: 0.78rem;" onchange="saveOAuthClientConfig()">
-            </label>
-            <label style="display: flex; flex-direction: column; gap: 0.2rem; color: var(--text-secondary);">
-              <span>Apple Service ID:</span>
-              <input id="cfg-apple-id" placeholder="e.g. com.supportpulse.app" style="padding: 0.4rem 0.6rem; font-size: 0.78rem;" onchange="saveOAuthClientConfig()">
-            </label>
-          </div>
-        </details>
-      </div>
     </div>
   </div>
 </div>
@@ -1169,6 +1178,76 @@ function openAuthModal() {
 }
 function closeAuthModal() {
   authModal.style.display = "none";
+}
+
+let isSignUpMode = false;
+
+function toggleAuthMode(e) {
+  if (e) e.preventDefault();
+  isSignUpMode = !isSignUpMode;
+  const nameGroup = document.getElementById("auth-name-group");
+  const submitBtn = document.getElementById("auth-submit-btn");
+  const toggleText = document.getElementById("auth-toggle-text");
+  const toggleLink = document.getElementById("auth-toggle-link");
+  const errorAlert = document.getElementById("auth-error-alert");
+
+  errorAlert.style.display = "none";
+
+  if (isSignUpMode) {
+    nameGroup.style.display = "flex";
+    submitBtn.innerHTML = "<span>Create Account</span>";
+    toggleText.textContent = "Already have an account?";
+    toggleLink.textContent = "Sign In";
+  } else {
+    nameGroup.style.display = "none";
+    submitBtn.innerHTML = "<span>Sign In</span>";
+    toggleText.textContent = "Don't have an account?";
+    toggleLink.textContent = "Sign Up";
+  }
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById("auth-email").value.trim();
+  const password = document.getElementById("auth-password").value;
+  const name = document.getElementById("auth-name").value.trim();
+  const errorAlert = document.getElementById("auth-error-alert");
+  const submitBtn = document.getElementById("auth-submit-btn");
+
+  errorAlert.style.display = "none";
+  submitBtn.disabled = true;
+
+  const endpoint = isSignUpMode ? "/auth/register" : "/auth/login";
+  const payload = isSignUpMode ? { email, password, name } : { email, password };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      errorAlert.textContent = data.error || "Authentication failed. Access denied.";
+      errorAlert.style.display = "block";
+      submitBtn.disabled = false;
+      return;
+    }
+
+    currentUser = {
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      provider: data.user.provider || "email",
+      avatar: null
+    };
+    completeLogin();
+  } catch (err) {
+    errorAlert.textContent = "Network error while authenticating. Please try again.";
+    errorAlert.style.display = "block";
+  } finally {
+    submitBtn.disabled = false;
+  }
 }
 
 function loginWithGoogle() {

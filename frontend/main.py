@@ -141,9 +141,113 @@ def _extract_parts(parts: list) -> list[dict]:
                 out.append({"kind": "a2ui", "data": root.data})
         elif isinstance(root, FilePart):
             uri = getattr(getattr(root, "file", None), "uri", None)
-            if uri:
-                out.append({"kind": "text", "text": uri})
-    return out
+import hashlib
+import json
+
+USERS_FILE = "/tmp/supportpulse_users.json"
+
+def _load_users_db() -> dict:
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    demo_pass_hash = hashlib.sha256("password123".encode()).hexdigest()
+    default_db = {
+        "user@gmail.com": {
+            "id": "usr_google_demo",
+            "email": "user@gmail.com",
+            "name": "Google User",
+            "password_hash": demo_pass_hash,
+            "provider": "google"
+        },
+        "admin@supportpulse.ai": {
+            "id": "usr_admin_demo",
+            "email": "admin@supportpulse.ai",
+            "name": "SupportPulse Admin",
+            "password_hash": demo_pass_hash,
+            "provider": "password"
+        }
+    }
+    _save_users_db(default_db)
+    return default_db
+
+def _save_users_db(db: dict):
+    try:
+        with open(USERS_FILE, "w") as f:
+            json.dump(db, f, indent=2)
+    except Exception as e:
+        print("Error saving user DB:", e)
+
+
+@app.post("/auth/register")
+async def register(req: Request):
+    body = await req.json()
+    email = body.get("email", "").strip().lower()
+    password = body.get("password", "")
+    name = body.get("name", "").strip() or email.split("@")[0].capitalize()
+
+    if not email or "@" not in email:
+        return JSONResponse(status_code=400, content={"error": "Please enter a valid email address."})
+    if not password or len(password) < 6:
+        return JSONResponse(status_code=400, content={"error": "Password must be at least 6 characters long."})
+
+    db = _load_users_db()
+    if email in db:
+        return JSONResponse(status_code=400, content={"error": "An account with this email already exists. Please sign in."})
+
+    pass_hash = hashlib.sha256(password.encode()).hexdigest()
+    user_id = "usr_" + uuid.uuid4().hex[:12]
+    user_data = {
+        "id": user_id,
+        "email": email,
+        "name": name,
+        "password_hash": pass_hash,
+        "provider": "email"
+    }
+    db[email] = user_data
+    _save_users_db(db)
+
+    return JSONResponse(content={
+        "success": True,
+        "user": {
+            "id": user_id,
+            "email": email,
+            "name": name,
+            "provider": "email"
+        }
+    })
+
+
+@app.post("/auth/login")
+async def login(req: Request):
+    body = await req.json()
+    email = body.get("email", "").strip().lower()
+    password = body.get("password", "")
+
+    if not email or not password:
+        return JSONResponse(status_code=400, content={"error": "Email and password are required."})
+
+    db = _load_users_db()
+    user_record = db.get(email)
+
+    if not user_record:
+        return JSONResponse(status_code=401, content={"error": "Invalid email or password. Access denied."})
+
+    input_hash = hashlib.sha256(password.encode()).hexdigest()
+    if user_record.get("password_hash") != input_hash:
+        return JSONResponse(status_code=401, content={"error": "Invalid password. Access denied."})
+
+    return JSONResponse(content={
+        "success": True,
+        "user": {
+            "id": user_record["id"],
+            "email": user_record["email"],
+            "name": user_record["name"],
+            "provider": user_record.get("provider", "email")
+        }
+    })
 
 
 @app.get("/auth/google/login")
