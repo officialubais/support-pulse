@@ -16,6 +16,7 @@ import base64
 import datetime
 import imageio_ffmpeg
 import json
+import math
 import os
 import random
 import subprocess
@@ -858,12 +859,12 @@ def concatenate_video_clips(clips_bytes: list[bytes]) -> bytes:
         return clips_bytes[0]
 
 
-async def generate_product_item_video(product_name: str, duration_seconds: int = 8, tool_context: ToolContext | None = None) -> dict[str, Any]:
+async def generate_product_item_video(product_name: str, duration_seconds: int = 16, tool_context: ToolContext | None = None) -> dict[str, Any]:
     """Generate high-definition product video using Vertex AI Veo 3.1 (veo-3.1-lite-generate-001) or Gemini Omni model, save as an artifact, and upload to public Cloud Storage.
 
     Args:
         product_name: Name of the product or item (e.g. 'Wireless Headphones', 'Ergonomic Mechanical Keyboard').
-        duration_seconds: Requested video duration in seconds (e.g. 8 for single 8s Veo clip, 16 for multi-scene commercial). Default is 8.
+        duration_seconds: Requested video duration in seconds (e.g. 5, 8, 16, 20, 30). Default is 16.
         tool_context: Optional ADK ToolContext.
 
     Returns:
@@ -877,34 +878,24 @@ async def generate_product_item_video(product_name: str, duration_seconds: int =
     # Attempt 1: Vertex AI Veo 3.1 Model (veo-3.1-lite-generate-001 in us-central1)
     try:
         client_veo = genai.Client(vertexai=True, project=PROJECT_ID, location="us-central1")
-        if duration_seconds > 10:
-            # Multi-scene commercial: generate 2 Veo 3.1 clips and concatenate for longer duration
-            prompts = [
-                f"Sleek studio unboxing and close-up product display of a brand new {product_name}, 4k 60fps cinematic lighting",
-                f"Dynamic product showcase of {product_name} in active use, elegant commercial shot, high end retail display"
-            ]
-            clips = []
-            for p in prompts:
-                op = client_veo.models.generate_videos(
-                    model="veo-3.1-lite-generate-001",
-                    source=types.GenerateVideosSource(prompt=p),
-                    config=types.GenerateVideosConfig(duration_seconds=8, aspect_ratio="16:9")
-                )
-                while not op.done:
-                    time.sleep(3)
-                    op = client_veo.operations.get(op)
-                if op.response and getattr(op.response, "generated_videos", None):
-                    vids = op.response.generated_videos
-                    if len(vids) > 0 and hasattr(vids[0].video, "video_bytes"):
-                        clips.append(vids[0].video.video_bytes)
-            if clips:
-                video_bytes = concatenate_video_clips(clips)
-                model_used = "Veo 3.1 Multi-Scene (16s)"
-        else:
-            # Single 8-second Veo 3.1 clip
+        # Each Veo 3.1 clip is ~5.0 seconds. Calculate number of clips needed to meet or exceed requested duration.
+        num_clips = max(1, math.ceil(duration_seconds / 5.0))
+        
+        scene_templates = [
+            f"Sleek studio unboxing and close-up product display of a brand new {product_name}, 4k 60fps cinematic lighting",
+            f"Dynamic product showcase of {product_name} in active use, elegant commercial shot, high end retail display",
+            f"360 degree slow-motion rotating presentation of {product_name}, premium aesthetic studio lighting",
+            f"Macro close-up shot emphasizing design details, texture, and craftsmanship of {product_name}, commercial advertisement",
+            f"Cinematic final hero shot of {product_name} on elegant display stand with glowing brand accent lighting"
+        ]
+        
+        prompts = [scene_templates[i % len(scene_templates)] for i in range(num_clips)]
+        clips = []
+
+        for p in prompts:
             op = client_veo.models.generate_videos(
                 model="veo-3.1-lite-generate-001",
-                source=types.GenerateVideosSource(prompt=f"Cinematic promotional product showcase video of a brand new {product_name}, modern e-commerce studio display, 4k high quality"),
+                source=types.GenerateVideosSource(prompt=p),
                 config=types.GenerateVideosConfig(duration_seconds=8, aspect_ratio="16:9")
             )
             while not op.done:
@@ -913,8 +904,12 @@ async def generate_product_item_video(product_name: str, duration_seconds: int =
             if op.response and getattr(op.response, "generated_videos", None):
                 vids = op.response.generated_videos
                 if len(vids) > 0 and hasattr(vids[0].video, "video_bytes"):
-                    video_bytes = vids[0].video.video_bytes
-                    model_used = "Veo 3.1 (8s)"
+                    clips.append(vids[0].video.video_bytes)
+
+        if clips:
+            video_bytes = concatenate_video_clips(clips)
+            total_sec = len(clips) * 5
+            model_used = f"Veo 3.1 Multi-Scene ({len(clips)} clips, ~{total_sec}s)"
     except Exception as e:
         print(f"Notice during Veo 3.1 video generation: {e}")
 
