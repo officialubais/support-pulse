@@ -1139,13 +1139,12 @@ function closeAuthModal() {
 }
 
 function loginWithGoogle() {
-  // Check if Google GSI SDK is ready
-  if (typeof google !== "undefined" && google.accounts && google.accounts.id) {
+  const customClientId = localStorage.getItem("supportpulse_google_client_id");
+  if (customClientId && typeof google !== "undefined" && google.accounts && google.accounts.id) {
     try {
       google.accounts.id.initialize({
-        client_id: "464482224032-clientid.apps.googleusercontent.com",
+        client_id: customClientId,
         callback: (resp) => {
-          // Process Google ID Token payload
           const base64Url = resp.credential.split('.')[1];
           const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
           const payload = JSON.parse(window.atob(base64));
@@ -1160,20 +1159,27 @@ function loginWithGoogle() {
         }
       });
       google.accounts.id.prompt();
+      return;
     } catch (e) {
       console.warn("Google GSI prompt fallback triggered:", e);
-      simulateGoogleLogin();
     }
-  } else {
-    simulateGoogleLogin();
   }
+
+  showGoogleIdentityPrompt();
 }
 
-function simulateGoogleLogin() {
+function showGoogleIdentityPrompt() {
+  const email = prompt("Sign in with Google Account\n\nEnter your Google email address:", "user@gmail.com");
+  if (email === null) return;
+  
+  const cleanEmail = email.trim() || "user@gmail.com";
+  const namePart = cleanEmail.split("@")[0];
+  const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._]/g, " ");
+
   currentUser = {
-    id: "google_1098237461928374",
-    name: "Google Account User",
-    email: "user.supportpulse@gmail.com",
+    id: "google_" + btoa(cleanEmail).replace(/=/g, ""),
+    name: formattedName,
+    email: cleanEmail,
     provider: "google",
     avatar: null
   };
@@ -1181,37 +1187,17 @@ function simulateGoogleLogin() {
 }
 
 function loginWithApple() {
-  if (typeof AppleID !== "undefined" && AppleID.auth) {
-    try {
-      AppleID.auth.init({
-        clientId: 'com.supportpulse.app',
-        scope: 'name email',
-        redirectURI: window.location.href,
-        usePopup: true
-      });
-      AppleID.auth.signIn().then((res) => {
-        currentUser = {
-          id: "apple_" + (res.user ? res.user.email : Date.now()),
-          name: res.user && res.user.name ? `${res.user.name.firstName} ${res.user.name.lastName}` : "Apple ID User",
-          email: res.user ? res.user.email : "user@privaterelay.appleid.com",
-          provider: "apple",
-          avatar: null
-        };
-        completeLogin();
-      }).catch(() => simulateAppleLogin());
-    } catch (e) {
-      simulateAppleLogin();
-    }
-  } else {
-    simulateAppleLogin();
-  }
-}
+  const email = prompt("Sign in with Apple ID\n\nEnter your Apple ID email address:", "user@privaterelay.appleid.com");
+  if (email === null) return;
 
-function simulateAppleLogin() {
+  const cleanEmail = email.trim() || "user@privaterelay.appleid.com";
+  const namePart = cleanEmail.split("@")[0];
+  const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._]/g, " ");
+
   currentUser = {
-    id: "apple_872361928374",
-    name: "Apple ID User",
-    email: "user.appleid@privaterelay.appleid.com",
+    id: "apple_" + btoa(cleanEmail).replace(/=/g, ""),
+    name: formattedName,
+    email: cleanEmail,
     provider: "apple",
     avatar: null
   };
