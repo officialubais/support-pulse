@@ -130,6 +130,8 @@ def _extract_parts(parts: list) -> list[dict]:
     surfaceUpdate).
     """
     out: list[dict] = []
+    if not parts:
+        return out
     for p in parts:
         root = getattr(p, "root", p)
         if isinstance(root, TextPart) and getattr(root, "text", None):
@@ -141,6 +143,11 @@ def _extract_parts(parts: list) -> list[dict]:
                 out.append({"kind": "a2ui", "data": root.data})
         elif isinstance(root, FilePart):
             uri = getattr(getattr(root, "file", None), "uri", None)
+            if uri:
+                out.append({"kind": "text", "text": uri})
+    return out
+
+
 import hashlib
 import json
 
