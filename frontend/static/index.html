@@ -550,7 +550,24 @@ function bubble(who) {
   return b;
 }
 
-function showTypingIndicator() {
+function showTypingIndicator(promptText) {
+  let statusText = "SupportPulse is processing your request…";
+  if (promptText) {
+    const t = promptText.toLowerCase();
+    if (t.includes("video") || t.includes("clip") || t.includes("commercial")) {
+      statusText = "SupportPulse is generating HD product video using Vertex AI Veo 3.1…";
+    } else if (t.includes("image") || t.includes("picture") || t.includes("photo") || t.includes("draw") || t.includes("generate")) {
+      statusText = "SupportPulse is generating product image using Imagen 3…";
+    } else if (t.includes("order") || t.includes("track") || t.includes("status") || t.includes("ord-")) {
+      statusText = "SupportPulse is checking order database & tracking status…";
+    } else if (t.includes("recommend") || t.includes("keyboard") || t.includes("headphone") || t.includes("product") || t.includes("catalog") || t.includes("price")) {
+      statusText = "SupportPulse is searching product catalog & memory bank…";
+    } else if (t.includes("return") || t.includes("refund") || t.includes("policy")) {
+      statusText = "SupportPulse is checking store return policy & memory bank…";
+    } else {
+      statusText = `SupportPulse is processing "${promptText.length > 30 ? promptText.slice(0, 30) + '…' : promptText}"…`;
+    }
+  }
   const b = bubble("agent");
   b.innerHTML = `
     <div class="typing-indicator">
@@ -559,7 +576,7 @@ function showTypingIndicator() {
         <span class="dot"></span>
         <span class="dot"></span>
       </div>
-      <span>SupportPulse is checking catalog & order database…</span>
+      <span>${statusText}</span>
     </div>
   `;
   return b;
@@ -812,7 +829,7 @@ form.addEventListener("submit", async (ev) => {
   if (!text) return;
   bubble("user").textContent = text;
   input.value = "";
-  const b = showTypingIndicator();
+  const b = showTypingIndicator(text);
   try {
     const res = await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text }) });
     const raw = await res.text();
