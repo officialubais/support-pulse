@@ -121,30 +121,48 @@ async def _get_card(client: httpx.AsyncClient) -> AgentCard:
     return _card
 
 
-def _extract_parts(parts: list) -> list[dict]:
-    """Turn A2A response parts into structured parts for the chat UI.
-
-    Text parts pass through as {"kind": "text"}. A2UI data parts (tagged
-    application/json+a2ui) become {"kind": "a2ui", "data": <message>} so the UI
-    renders the card; each data part is one A2UI message (beginRendering or
-    surfaceUpdate).
-    """
+def _extract_parts(obj: any) -> list[dict]:
+    """Safely extract text and A2UI cards from any object or payload (lists, Parts, Messages, Artifacts, None)."""
     out: list[dict] = []
-    if not parts:
+    if obj is None:
         return out
-    for p in parts:
-        root = getattr(p, "root", p)
-        if isinstance(root, TextPart) and getattr(root, "text", None):
-            out.append({"kind": "text", "text": root.text})
-        elif getattr(root, "data", None) is not None:
-            meta = getattr(root, "metadata", None) or {}
-            mime = meta.get("mimeType") if isinstance(meta, dict) else None
-            if mime == _A2UI_MIME:
-                out.append({"kind": "a2ui", "data": root.data})
-        elif isinstance(root, FilePart):
-            uri = getattr(getattr(root, "file", None), "uri", None)
-            if uri:
-                out.append({"kind": "text", "text": uri})
+
+    # Handle lists/tuples recursively
+    if isinstance(obj, (list, tuple)):
+        for item in obj:
+            out.extend(_extract_parts(item))
+        return out
+
+    # Handle Artifact, Message, or TaskArtifactUpdateEvent containing .artifact or .parts
+    if hasattr(obj, "artifact") and getattr(obj, "artifact", None) is not None:
+        return _extract_parts(getattr(obj, "artifact"))
+
+    if hasattr(obj, "parts") and getattr(obj, "parts", None) is not None:
+        return _extract_parts(getattr(obj, "parts"))
+
+    # Single Part or Root Part processing
+    root = getattr(obj, "root", obj)
+    if isinstance(root, TextPart) and getattr(root, "text", None):
+        out.append({"kind": "text", "text": root.text})
+    elif getattr(root, "text", None) is not None and isinstance(getattr(root, "text", None), str):
+        out.append({"kind": "text", "text": root.text})
+    elif getattr(root, "data", None) is not None:
+        meta = getattr(root, "metadata", None) or {}
+        mime = meta.get("mimeType") if isinstance(meta, dict) else getattr(root, "mime_type", None)
+        data = root.data
+        if isinstance(data, dict):
+            if "beginRendering" in data or "surfaceUpdate" in data or mime == _A2UI_MIME:
+                out.append({"kind": "a2ui", "data": data})
+        elif isinstance(data, str) and mime == _A2UI_MIME:
+            try:
+                out.append({"kind": "a2ui", "data": json.loads(data)})
+            except Exception:
+                pass
+    elif isinstance(root, FilePart):
+        uri = getattr(getattr(root, "file", None), "uri", None)
+        if uri:
+            out.append({"kind": "text", "text": uri})
+
     return out
 
 
@@ -328,21 +346,26 @@ async def chat(req: Request):
         last_task = None
         got_artifact_update = False
         async for event in a2a_client.send_message(msg):
-            if not isinstance(event, tuple):
-                continue
-            task, update = event
+            if isinstance(event, tuple):
+                task, update = event
+            else:
+                task, update = None, event
+
             if task is not None:
                 last_task = task
                 if getattr(task, "context_id", None):
                     _contexts[user_id] = task.context_id
-            if isinstance(update, TaskArtifactUpdateEvent):
-                got_artifact_update = True
-                parts.extend(_extract_parts(update.artifact.parts))
+
+            if update is not None:
+                extracted = _extract_parts(update)
+                if extracted:
+                    got_artifact_update = True
+                    parts.extend(extracted)
 
         # Non-streaming fallback: pull parts from the final task's artifacts.
         if not got_artifact_update and last_task is not None:
-            for artifact in getattr(last_task, "artifacts", None) or []:
-                parts.extend(_extract_parts(artifact.parts))
+            artifacts = getattr(last_task, "artifacts", None) or []
+            parts.extend(_extract_parts(artifacts))
 
     if not parts:
         # The turn produced no text or UI (e.g. the agent only ran tools, or a
