@@ -19,6 +19,7 @@
     --bg: #f8fafc;
     --border: #e2e8f0;
     --card-bg: #ffffff;
+    --sidebar-bg: #ffffff;
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #94a3b8;
@@ -36,6 +37,7 @@
     --bg: #0f172a;
     --border: #334155;
     --card-bg: #1e293b;
+    --sidebar-bg: #0f172a;
     --text-primary: #f8fafc;
     --text-secondary: #cbd5e1;
     --text-muted: #64748b;
@@ -50,38 +52,218 @@
     background: var(--bg);
     color: var(--text-primary);
     display: flex;
-    flex-direction: column;
     height: 100vh;
     overflow: hidden;
     transition: background-color 0.3s, color 0.3s;
+  }
+
+  #app-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Sidebar */
+  #sidebar {
+    width: 280px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+    transition: transform 0.3s ease, margin-left 0.3s ease;
+    flex-shrink: 0;
+  }
+  #sidebar.collapsed {
+    margin-left: -280px;
+  }
+
+  .sidebar-header {
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .sidebar-brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--text-primary);
+  }
+  .brand-logo .material-symbols-outlined {
+    font-size: 1.5rem;
+    color: var(--accent);
+  }
+
+  .new-chat-btn {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+  }
+  .new-chat-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+    transform: translateY(-1px);
+  }
+
+  .sidebar-section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.85rem 1.25rem 0.3rem 1.25rem;
+  }
+
+  #session-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.4rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  #session-list::-webkit-scrollbar { width: 4px; }
+  #session-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .session-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+    border: 1px solid transparent;
+  }
+  .session-item:hover {
+    background: var(--accent-light);
+    color: var(--text-primary);
+  }
+  .session-item.active {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 600;
+    border: 1px solid var(--border);
+  }
+
+  .session-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    flex: 1;
+  }
+  .session-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .session-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.86rem;
+  }
+  .delete-session-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+  }
+  .session-item:hover .delete-session-btn {
+    opacity: 1;
+  }
+  .delete-session-btn:hover {
+    color: #ef4444;
+  }
+
+  /* Main Workspace */
+  #main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
   }
 
   /* Header */
   header {
     background: var(--accent-gradient);
     color: #fff;
-    padding: 0.85rem 1.5rem;
+    padding: 0.75rem 1.25rem;
     box-shadow: var(--shadow-md);
     z-index: 10;
-  }
-  .header-content {
-    max-width: 880px;
-    margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
-  .brand {
+  .header-left {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    font-weight: 700;
-    font-size: 1.25rem;
-    letter-spacing: -0.02em;
+    gap: 0.75rem;
   }
-  .brand .material-symbols-outlined {
-    font-size: 1.6rem;
-    color: #c7d2fe;
+  .sidebar-toggle-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .sidebar-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.28);
+  }
+  .header-title-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+  .header-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+  }
+  .header-subtitle {
+    font-size: 0.75rem;
+    opacity: 0.85;
   }
   .header-actions {
     display: flex;
@@ -105,26 +287,16 @@
     background: rgba(255, 255, 255, 0.28);
     transform: scale(1.05);
   }
-  .badge {
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(4px);
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.25rem 0.6rem;
-    border-radius: 20px;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-  }
 
-  /* Main Container */
+  /* Main Chat Container */
   #main-container {
     flex: 1;
     display: flex;
     flex-direction: column;
-    max-width: 880px;
+    max-width: 900px;
     width: 100%;
     margin: 0 auto;
-    height: calc(100vh - 68px);
+    height: calc(100vh - 60px);
   }
 
   #log {
@@ -416,54 +588,88 @@
   .a2divider { border: none; border-top: 1px solid var(--border); margin: 0.6rem 0; width: 100%; }
   .a2img { max-width: 100%; border-radius: 10px; display: block; box-shadow: var(--shadow-sm); cursor: zoom-in; }
   .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 1.2rem; line-height: 1; vertical-align: middle; }
+
+  @media (max-width: 768px) {
+    #sidebar {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="header-content">
-    <div class="brand">
-      <span class="material-symbols-outlined">pulse_alert</span>
-      <span>SupportPulse</span>
-      <span class="badge">E-Commerce</span>
-    </div>
-    <div class="header-actions">
-      <button type="button" class="header-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
-        <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
-      </button>
-      <button type="button" class="header-btn" onclick="exportChat()" title="Export Chat Transcript">
-        <span class="material-symbols-outlined">download</span>
-      </button>
-      <button type="button" class="header-btn" onclick="resetChat()" title="Start New Chat Session">
-        <span class="material-symbols-outlined">refresh</span>
+<div id="app-container">
+  <!-- Left Sidebar for Session History -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <span class="material-symbols-outlined">pulse_alert</span>
+          <span>SupportPulse</span>
+        </div>
+      </div>
+      <button type="button" class="new-chat-btn" onclick="createNewSession(true)">
+        <span class="material-symbols-outlined" style="font-size:1.1rem;">add</span>
+        <span>New Chat</span>
       </button>
     </div>
-  </div>
-</header>
 
-<div id="main-container">
-  <div id="log"></div>
+    <div class="sidebar-section-label">Chat History</div>
+    <div id="session-list"></div>
+  </aside>
 
-  <!-- Prompt Suggestions Row -->
-  <div id="suggestions">
-    <button type="button" class="suggestion-chip" onclick="sendPrompt('Track order ORD-1001 and check shipping status')">
-      <span>📦</span> Track Order ORD-1001
-    </button>
-    <button type="button" class="suggestion-chip" onclick="sendPrompt('Calculate refund for returning Wireless Headphones')">
-      <span>🎧</span> Calculate Refund (Headphones)
-    </button>
-    <button type="button" class="suggestion-chip" onclick="sendPrompt('Check inventory for Mechanical Keyboard in Seattle WA')">
-      <span>📍</span> Check Keyboard Inventory
-    </button>
-  </div>
+  <!-- Main Workspace -->
+  <main id="main-wrapper">
+    <header>
+      <div class="header-left">
+        <button type="button" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle Session History Sidebar">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <div class="header-title-wrapper">
+          <div class="header-title" id="active-session-header-title">SupportPulse AI</div>
+          <div class="header-subtitle">Multi-Modal Support Assistant</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="header-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+          <span class="material-symbols-outlined" id="theme-icon">dark_mode</span>
+        </button>
+        <button type="button" class="header-btn" onclick="exportChat()" title="Export Chat Transcript">
+          <span class="material-symbols-outlined">download</span>
+        </button>
+      </div>
+    </header>
 
-  <form id="form">
-    <input id="input" placeholder="Ask SupportPulse about your order, inventory, or returns…" autocomplete="off" autofocus>
-    <button type="submit">
-      <span>Send</span>
-      <span class="material-symbols-outlined" style="font-size:1.1rem; color:#fff;">send</span>
-    </button>
-  </form>
+    <div id="main-container">
+      <div id="log"></div>
+
+      <!-- Prompt Suggestions Row -->
+      <div id="suggestions">
+        <button type="button" class="suggestion-chip" onclick="sendPrompt('Track order ORD-1001 and check shipping status')">
+          <span>📦</span> Track Order ORD-1001
+        </button>
+        <button type="button" class="suggestion-chip" onclick="sendPrompt('Generate an extended 16-second promotional video for Wireless Headphones')">
+          <span>🎬</span> 16s Headphones Video
+        </button>
+        <button type="button" class="suggestion-chip" onclick="sendPrompt('Generate a product image of Ergonomic Mechanical Keyboard')">
+          <span>🖼️</span> Keyboard Image
+        </button>
+        <button type="button" class="suggestion-chip" onclick="sendPrompt('Check inventory for Mechanical Keyboard in Seattle WA')">
+          <span>📍</span> Seattle Inventory
+        </button>
+      </div>
+
+      <form id="form">
+        <input id="input" placeholder="Ask SupportPulse about your order, video generation, or inventory…" autocomplete="off" autofocus>
+        <button type="submit">
+          <span>Send</span>
+          <span class="material-symbols-outlined" style="font-size:1.1rem; color:#fff;">send</span>
+        </button>
+      </form>
+    </div>
+  </main>
 </div>
 
 <!-- Image Lightbox Overlay -->
@@ -479,8 +685,18 @@ const form = document.getElementById("form");
 const input = document.getElementById("input");
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightbox-img");
+const sessionList = document.getElementById("session-list");
+const sidebar = document.getElementById("sidebar");
+
+let sessions = [];
+let activeSessionId = null;
 
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+// Toggle Sidebar
+function toggleSidebar() {
+  sidebar.classList.toggle("collapsed");
+}
 
 // Theme Toggle
 function toggleTheme() {
@@ -490,33 +706,7 @@ function toggleTheme() {
   document.getElementById("theme-icon").textContent = next === "dark" ? "light_mode" : "dark_mode";
 }
 
-// Export Chat Transcript
-function exportChat() {
-  const rows = log.querySelectorAll(".msg-row");
-  if (!rows.length) return alert("No conversation transcript to export.");
-  let text = "# SupportPulse Chat Transcript\n\n";
-  rows.forEach(r => {
-    const isUser = r.classList.contains("user");
-    const bubble = r.querySelector(".bubble");
-    text += `### ${isUser ? "You" : "SupportPulse AI"}\n${bubble ? bubble.textContent.trim() : ""}\n\n`;
-  });
-  const blob = new Blob([text], { type: "text/markdown" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `supportpulse_transcript_${Date.now()}.md`;
-  a.click();
-}
-
-// Reset Chat Session
-function resetChat() {
-  if (confirm("Start a new conversation session?")) {
-    log.innerHTML = "";
-    input.value = "";
-    input.focus();
-  }
-}
-
-// Lightbox modal controls
+// Lightbox controls
 function openLightbox(src) {
   lightboxImg.src = src;
   lightbox.style.display = "flex";
@@ -525,6 +715,186 @@ function closeLightbox() {
   lightbox.style.display = "none";
 }
 
+// Export Chat Transcript
+function exportChat() {
+  const currentSess = sessions.find(s => s.id === activeSessionId);
+  if (!currentSess || !currentSess.messages || !currentSess.messages.length) {
+    return alert("No conversation transcript in this session to export.");
+  }
+  let text = `# SupportPulse Chat Transcript — ${currentSess.title}\n\n`;
+  currentSess.messages.forEach(m => {
+    text += `### ${m.who === "user" ? "You" : "SupportPulse AI"}\n`;
+    if (m.text) text += `${m.text}\n\n`;
+    if (m.parts && m.parts.length) {
+      const texts = m.parts.filter(p => p && (p.kind === "text" || (!p.kind && p.text))).map(p => p.text || "");
+      if (texts.length) text += `${texts.join("\n")}\n\n`;
+    }
+  });
+  const blob = new Blob([text], { type: "text/markdown" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `supportpulse_session_${Date.now()}.md`;
+  a.click();
+}
+
+/* ----------------------------------------------------------------------------
+ * Session State & History Persistence
+ * -------------------------------------------------------------------------- */
+function loadSessions() {
+  try {
+    const raw = localStorage.getItem("supportpulse_sessions_v1");
+    if (raw) sessions = JSON.parse(raw);
+  } catch (e) {
+    console.error("Error loading sessions:", e);
+  }
+
+  if (!sessions || !Array.isArray(sessions) || !sessions.length) {
+    sessions = [];
+    createNewSession(false);
+  } else {
+    activeSessionId = localStorage.getItem("supportpulse_active_session");
+    if (!sessions.find(s => s.id === activeSessionId)) {
+      activeSessionId = sessions[0].id;
+    }
+  }
+  renderSessionList();
+  renderActiveSessionMessages();
+}
+
+function saveSessions() {
+  try {
+    localStorage.setItem("supportpulse_sessions_v1", JSON.stringify(sessions));
+    localStorage.setItem("supportpulse_active_session", activeSessionId);
+  } catch (e) {
+    console.error("Error saving sessions:", e);
+  }
+}
+
+function createNewSession(switchImmediately = true) {
+  const newId = "sess_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+  const newSess = {
+    id: newId,
+    title: "New Chat",
+    icon: "💬",
+    timestamp: Date.now(),
+    messages: []
+  };
+  sessions.unshift(newSess);
+  if (switchImmediately) {
+    activeSessionId = newId;
+    saveSessions();
+    renderSessionList();
+    renderActiveSessionMessages();
+    input.focus();
+  }
+  return newSess;
+}
+
+function deleteSession(sessionId, ev) {
+  if (ev) ev.stopPropagation();
+  sessions = sessions.filter(s => s.id !== sessionId);
+  if (activeSessionId === sessionId) {
+    if (sessions.length) {
+      activeSessionId = sessions[0].id;
+    } else {
+      createNewSession(false);
+    }
+  }
+  saveSessions();
+  renderSessionList();
+  renderActiveSessionMessages();
+}
+
+function switchSession(sessionId) {
+  activeSessionId = sessionId;
+  saveSessions();
+  renderSessionList();
+  renderActiveSessionMessages();
+}
+
+function deriveSessionTitleAndIcon(promptText) {
+  const t = promptText.toLowerCase().trim();
+  let icon = "💬";
+  let title = promptText.length > 25 ? promptText.slice(0, 25) + '…' : promptText;
+
+  if (/\b(video|clip|commercial|footage|veo|omni)\b/i.test(t)) {
+    icon = "🎬";
+    title = "Product Video Generation";
+  } else if (/\b(image|picture|photo|draw|imagen)\b/i.test(t)) {
+    icon = "🖼️";
+    title = "Product Image Generation";
+  } else if (/\b(order|ord-\d+|track|tracking|delivery|package)\b/i.test(t)) {
+    icon = "📦";
+    const ordMatch = t.match(/ord-\d+/i);
+    title = ordMatch ? `Order ${ordMatch[0].toUpperCase()} Tracking` : "Order Tracking";
+  } else if (/\b(return|refund|exchange|policy)\b/i.test(t)) {
+    icon = "🎧";
+    title = "Return Policy & Refund";
+  } else if (/\b(inventory|stock|seattle|store|warehouse)\b/i.test(t)) {
+    icon = "📍";
+    title = "Store Inventory Check";
+  } else if (/\b(keyboard|headphone|mouse|catalog|price)\b/i.test(t)) {
+    icon = "⌨️";
+    title = "Product Catalog Search";
+  }
+  return { title, icon };
+}
+
+function renderSessionList() {
+  sessionList.innerHTML = "";
+  sessions.forEach(s => {
+    const item = el("div", "session-item" + (s.id === activeSessionId ? " active" : ""));
+    item.onclick = () => switchSession(s.id);
+
+    const info = el("div", "session-info");
+    const icon = el("span", "session-icon", s.icon || "💬");
+    const title = el("span", "session-title", s.title || "New Chat");
+    info.appendChild(icon);
+    info.appendChild(title);
+
+    const delBtn = el("button", "delete-session-btn");
+    delBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size:1.1rem;">delete</span>`;
+    delBtn.title = "Delete Chat Session";
+    delBtn.onclick = (e) => deleteSession(s.id, e);
+
+    item.appendChild(info);
+    item.appendChild(delBtn);
+    sessionList.appendChild(item);
+  });
+}
+
+function renderActiveSessionMessages() {
+  log.innerHTML = "";
+  const currentSess = sessions.find(s => s.id === activeSessionId);
+  if (!currentSess) return;
+
+  document.getElementById("active-session-header-title").textContent = currentSess.title || "SupportPulse AI";
+
+  if (!currentSess.messages || !currentSess.messages.length) {
+    // Show empty state intro
+    return;
+  }
+
+  currentSess.messages.forEach(m => {
+    if (m.who === "user") {
+      const b = bubble("user");
+      b.textContent = m.text;
+    } else if (m.who === "agent") {
+      const b = bubble("agent");
+      if (m.parts) {
+        renderReply(b, m.parts);
+      } else if (m.text) {
+        b.textContent = m.text;
+      }
+    }
+  });
+
+  setTimeout(() => {
+    log.scrollTop = log.scrollHeight;
+  }, 50);
+}
+
+/* Message Bubble Helper */
 function bubble(who) {
   const row = el("div", "msg-row " + who);
 
@@ -624,7 +994,7 @@ function renderOrderStepper(container, textContent) {
 }
 
 /* ----------------------------------------------------------------------------
- * A2UI mini-renderer (v0.8 Basic Catalog subset + Lightbox & Stepper).
+ * A2UI Renderer
  * -------------------------------------------------------------------------- */
 function boundStr(v) {
   if (v == null) return "";
@@ -819,30 +1189,66 @@ function renderReply(b, parts) {
     img.onclick = () => openLightbox(img.src);
   });
 
-  // Auto-scroll log to bottom smoothly
   setTimeout(() => {
     log.scrollTop = log.scrollHeight;
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-  }, 100);
+  }, 50);
 }
 
+/* Submit Form Listener */
 form.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const text = input.value.trim();
   if (!text) return;
+
+  let currentSess = sessions.find(s => s.id === activeSessionId);
+  if (!currentSess) {
+    currentSess = createNewSession(true);
+  }
+
+  // Update session title & icon on first user prompt
+  if (!currentSess.messages || !currentSess.messages.length) {
+    const { title, icon } = deriveSessionTitleAndIcon(text);
+    currentSess.title = title;
+    currentSess.icon = icon;
+    document.getElementById("active-session-header-title").textContent = title;
+    renderSessionList();
+  }
+
+  // Append user message to active session
+  currentSess.messages = currentSess.messages || [];
+  currentSess.messages.push({ who: "user", text: text });
+  saveSessions();
+
   bubble("user").textContent = text;
   input.value = "";
+
   const b = showTypingIndicator(text);
   try {
-    const res = await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text }) });
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text, session_id: activeSessionId })
+    });
     const raw = await res.text();
     let data;
     try { data = JSON.parse(raw); }
     catch { throw new Error(`Server returned non-JSON (HTTP ${res.status}). ${raw.slice(0, 300)}`); }
+
+    // Append agent reply to active session messages
+    currentSess.messages.push({ who: "agent", parts: data.parts || [] });
+    saveSessions();
+
     renderReply(b, data.parts || []);
   } catch (e) {
     b.textContent = "Error: " + e.message;
+    currentSess.messages.push({ who: "agent", text: "Error: " + e.message });
+    saveSessions();
   }
+});
+
+// Initialize on page load
+window.addEventListener("DOMContentLoaded", () => {
+  loadSessions();
 });
 </script>
 </body>
