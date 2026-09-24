@@ -553,19 +553,22 @@ function bubble(who) {
 function showTypingIndicator(promptText) {
   let statusText = "SupportPulse is processing your request…";
   if (promptText) {
-    const t = promptText.toLowerCase();
-    if (t.includes("video") || t.includes("clip") || t.includes("commercial")) {
+    const t = promptText.toLowerCase().trim();
+    if (/\b(video|clip|commercial|footage|movie|veo|omni|animation)\b/i.test(t)) {
       statusText = "SupportPulse is generating HD product video using Vertex AI Veo 3.1…";
-    } else if (t.includes("image") || t.includes("picture") || t.includes("photo") || t.includes("draw") || t.includes("generate")) {
+    } else if (/\b(image|picture|photo|draw|illustration|imagen|snapshot|visual)\b/i.test(t)) {
       statusText = "SupportPulse is generating product image using Imagen 3…";
-    } else if (t.includes("order") || t.includes("track") || t.includes("status") || t.includes("ord-")) {
+    } else if (/\b(order|ord-\d+|track|tracking|delivery|shipping|package|shipment)\b/i.test(t) || t.includes("where is my")) {
       statusText = "SupportPulse is checking order database & tracking status…";
-    } else if (t.includes("recommend") || t.includes("keyboard") || t.includes("headphone") || t.includes("product") || t.includes("catalog") || t.includes("price")) {
-      statusText = "SupportPulse is searching product catalog & memory bank…";
-    } else if (t.includes("return") || t.includes("refund") || t.includes("policy")) {
+    } else if (/\b(return|refund|exchange|policy|cancel|warranty)\b/i.test(t)) {
       statusText = "SupportPulse is checking store return policy & memory bank…";
+    } else if (/\b(inventory|stock|seattle|wa|store|warehouse|available)\b/i.test(t)) {
+      statusText = "SupportPulse is querying store inventory database…";
+    } else if (/\b(recommend|suggest|keyboard|headphone|mouse|product|catalog|price|buy|search)\b/i.test(t)) {
+      statusText = "SupportPulse is searching product catalog & memory bank…";
     } else {
-      statusText = `SupportPulse is processing "${promptText.length > 30 ? promptText.slice(0, 30) + '…' : promptText}"…`;
+      const clean = promptText.length > 28 ? promptText.slice(0, 28) + '…' : promptText;
+      statusText = `SupportPulse is processing "${clean}"…`;
     }
   }
   const b = bubble("agent");
