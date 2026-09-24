@@ -14,9 +14,13 @@
 
 import base64
 import datetime
+import imageio_ffmpeg
 import json
 import os
 import random
+import subprocess
+import tempfile
+import time
 from typing import Any
 import urllib.parse
 import urllib.request
@@ -823,83 +827,139 @@ async def generate_product_item_image(product_name: str, tool_context: ToolConte
     }
 
 
-async def generate_product_item_video(product_name: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
-    """Generate a short product video using Google's Omni model (gemini-omni-flash-preview) in the global region, save as an artifact, and upload to public Cloud Storage.
+def concatenate_video_clips(clips_bytes: list[bytes]) -> bytes:
+    """Stitch multiple MP4 video byte streams into a single video file using imageio-ffmpeg."""
+    if not clips_bytes:
+        return b""
+    if len(clips_bytes) == 1:
+        return clips_bytes[0]
+    try:
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_paths = []
+            for idx, cb in enumerate(clips_bytes):
+                p = os.path.join(tmpdir, f"clip_{idx}.mp4")
+                with open(p, "wb") as f:
+                    f.write(cb)
+                file_paths.append(p)
+
+            list_file = os.path.join(tmpdir, "files.txt")
+            with open(list_file, "w") as f:
+                for p in file_paths:
+                    f.write(f"file '{p}'\n")
+
+            out_file = os.path.join(tmpdir, "output.mp4")
+            cmd = [exe, "-y", "-f", "concat", "-safe", "0", "-i", list_file, "-c", "copy", out_file]
+            subprocess.run(cmd, check=True, capture_output=True)
+            with open(out_file, "rb") as f:
+                return f.read()
+    except Exception as e:
+        print(f"Notice during video concatenation: {e}")
+        return clips_bytes[0]
+
+
+async def generate_product_item_video(product_name: str, duration_seconds: int = 8, tool_context: ToolContext | None = None) -> dict[str, Any]:
+    """Generate high-definition product video using Vertex AI Veo 3.1 (veo-3.1-lite-generate-001) or Gemini Omni model, save as an artifact, and upload to public Cloud Storage.
 
     Args:
         product_name: Name of the product or item (e.g. 'Wireless Headphones', 'Ergonomic Mechanical Keyboard').
+        duration_seconds: Requested video duration in seconds (e.g. 8 for single 8s Veo clip, 16 for multi-scene commercial). Default is 8.
         tool_context: Optional ADK ToolContext.
 
     Returns:
-        A dictionary containing the public Cloud Storage HTTPS URL of the generated video.
+        A dictionary containing the public Cloud Storage HTTPS URL of the generated video and metadata.
     """
     filename = f"video_{random.randint(10000, 99999)}.mp4"
-    client = genai.Client(vertexai=True, project=PROJECT_ID, location="global")
-    prompt = f"Short promotional product showcase video of a brand new {product_name}, modern e-commerce product display, high quality"
+    video_bytes = None
+    mime_type = "video/mp4"
+    model_used = "Gemini Omni"
 
+    # Attempt 1: Vertex AI Veo 3.1 Model (veo-3.1-lite-generate-001 in us-central1)
     try:
-        interaction = client.interactions.create(
-            model="gemini-omni-flash-preview",
-            input=prompt,
-            generation_config={"response_modalities": ["VIDEO"]}
-        )
-
-        video_bytes = None
-        mime_type = "video/mp4"
-
-        if interaction and getattr(interaction, "output_video", None):
-            out_vid = interaction.output_video
-            if getattr(out_vid, "data", None):
-                if isinstance(out_vid.data, str):
-                    video_bytes = base64.b64decode(out_vid.data)
-                elif isinstance(out_vid.data, bytes):
-                    video_bytes = out_vid.data
-                else:
-                    video_bytes = base64.b64decode(str(out_vid.data))
-            elif getattr(out_vid, "uri", None):
-                req = urllib.request.Request(out_vid.uri)
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    video_bytes = resp.read()
-
-            if getattr(out_vid, "mime_type", None):
-                mime_type = str(out_vid.mime_type)
-
-        if not video_bytes and interaction and getattr(interaction, "steps", None):
-            for step in interaction.steps:
-                content = getattr(step, "content", None)
-                if isinstance(content, list):
-                    for item in content:
-                        if getattr(item, "type", None) == "video":
-                            if hasattr(item, "data") and item.data:
-                                video_bytes = base64.b64decode(item.data) if isinstance(item.data, str) else item.data
-                                break
-
-        if video_bytes:
-            # (1) Save with tool_context.save_artifact if available
-            if tool_context:
-                artifact_part = types.Part.from_bytes(data=video_bytes, mime_type=mime_type)
-                await tool_context.save_artifact(filename=filename, artifact=artifact_part)
-
-            # (2) Upload video bytes to public Cloud Storage bucket
-            storage_client = storage.Client(project=PROJECT_ID)
-            bucket = storage_client.bucket("support-pulse-assets-qwiklabs-gcp-01-0a583d84e820")
-            blob = bucket.blob(filename)
-            blob.upload_from_string(video_bytes, content_type=mime_type)
-
-            public_url = f"https://storage.googleapis.com/support-pulse-assets-qwiklabs-gcp-01-0a583d84e820/{filename}"
-
-            return {
-                "success": True,
-                "product_name": product_name,
-                "public_video_url": public_url,
-                "video_url": public_url,
-            }
+        client_veo = genai.Client(vertexai=True, project=PROJECT_ID, location="us-central1")
+        if duration_seconds > 10:
+            # Multi-scene commercial: generate 2 Veo 3.1 clips and concatenate for longer duration
+            prompts = [
+                f"Sleek studio unboxing and close-up product display of a brand new {product_name}, 4k 60fps cinematic lighting",
+                f"Dynamic product showcase of {product_name} in active use, elegant commercial shot, high end retail display"
+            ]
+            clips = []
+            for p in prompts:
+                op = client_veo.models.generate_videos(
+                    model="veo-3.1-lite-generate-001",
+                    source=types.GenerateVideosSource(prompt=p),
+                    config=types.GenerateVideosConfig(duration_seconds=8, aspect_ratio="16:9")
+                )
+                while not op.done:
+                    time.sleep(3)
+                    op = client_veo.operations.get(op)
+                if op.response and getattr(op.response, "generated_videos", None):
+                    vids = op.response.generated_videos
+                    if len(vids) > 0 and hasattr(vids[0].video, "video_bytes"):
+                        clips.append(vids[0].video.video_bytes)
+            if clips:
+                video_bytes = concatenate_video_clips(clips)
+                model_used = "Veo 3.1 Multi-Scene (16s)"
+        else:
+            # Single 8-second Veo 3.1 clip
+            op = client_veo.models.generate_videos(
+                model="veo-3.1-lite-generate-001",
+                source=types.GenerateVideosSource(prompt=f"Cinematic promotional product showcase video of a brand new {product_name}, modern e-commerce studio display, 4k high quality"),
+                config=types.GenerateVideosConfig(duration_seconds=8, aspect_ratio="16:9")
+            )
+            while not op.done:
+                time.sleep(3)
+                op = client_veo.operations.get(op)
+            if op.response and getattr(op.response, "generated_videos", None):
+                vids = op.response.generated_videos
+                if len(vids) > 0 and hasattr(vids[0].video, "video_bytes"):
+                    video_bytes = vids[0].video.video_bytes
+                    model_used = "Veo 3.1 (8s)"
     except Exception as e:
-        print(f"Notice during gemini-omni-flash-preview video generation: {e}")
+        print(f"Notice during Veo 3.1 video generation: {e}")
+
+    # Attempt 2: Fallback to Gemini Omni model (gemini-omni-flash-preview in global)
+    if not video_bytes:
+        try:
+            client_omni = genai.Client(vertexai=True, project=PROJECT_ID, location="global")
+            interaction = client_omni.interactions.create(
+                model="gemini-omni-flash-preview",
+                input=f"Short promotional product showcase video of a brand new {product_name}, modern e-commerce product display, high quality",
+                generation_config={"response_modalities": ["VIDEO"]}
+            )
+            if interaction and getattr(interaction, "output_video", None):
+                out_vid = interaction.output_video
+                if getattr(out_vid, "data", None):
+                    video_bytes = base64.b64decode(out_vid.data) if isinstance(out_vid.data, str) else out_vid.data
+                    model_used = "Gemini Omni (5s)"
+        except Exception as e:
+            print(f"Notice during gemini-omni-flash-preview fallback video generation: {e}")
+
+    if video_bytes:
+        # (1) Save artifact if tool_context available
+        if tool_context:
+            artifact_part = types.Part.from_bytes(data=video_bytes, mime_type=mime_type)
+            await tool_context.save_artifact(filename=filename, artifact=artifact_part)
+
+        # (2) Upload to public GCS bucket
+        storage_client = storage.Client(project=PROJECT_ID)
+        bucket = storage_client.bucket(GCS_BUCKET_NAME)
+        blob = bucket.blob(filename)
+        blob.upload_from_string(video_bytes, content_type=mime_type)
+
+        public_url = f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{filename}"
+
+        return {
+            "success": True,
+            "product_name": product_name,
+            "public_video_url": public_url,
+            "video_url": public_url,
+            "model_used": model_used,
+        }
 
     return {
         "success": False,
-        "error": "Failed to generate video with gemini-omni-flash-preview model."
+        "error": "Failed to generate video with Veo 3.1 or Gemini Omni models."
     }
 
 
