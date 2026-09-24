@@ -823,12 +823,12 @@ async def generate_product_item_image(product_name: str, tool_context: ToolConte
     }
 
 
-async def generate_product_item_video(product_name: str, tool_context: ToolContext) -> dict[str, Any]:
+async def generate_product_item_video(product_name: str, tool_context: ToolContext | None = None) -> dict[str, Any]:
     """Generate a short product video using Google's Omni model (gemini-omni-flash-preview) in the global region, save as an artifact, and upload to public Cloud Storage.
 
     Args:
         product_name: Name of the product or item (e.g. 'Wireless Headphones', 'Ergonomic Mechanical Keyboard').
-        tool_context: ADK ToolContext passed automatically by framework.
+        tool_context: Optional ADK ToolContext.
 
     Returns:
         A dictionary containing the public Cloud Storage HTTPS URL of the generated video.
@@ -875,9 +875,10 @@ async def generate_product_item_video(product_name: str, tool_context: ToolConte
                                 break
 
         if video_bytes:
-            # (1) Save with tool_context.save_artifact for Playground Artifacts panel
-            artifact_part = types.Part.from_bytes(data=video_bytes, mime_type=mime_type)
-            await tool_context.save_artifact(filename=filename, artifact=artifact_part)
+            # (1) Save with tool_context.save_artifact if available
+            if tool_context:
+                artifact_part = types.Part.from_bytes(data=video_bytes, mime_type=mime_type)
+                await tool_context.save_artifact(filename=filename, artifact=artifact_part)
 
             # (2) Upload video bytes to public Cloud Storage bucket
             storage_client = storage.Client(project=PROJECT_ID)
@@ -890,6 +891,7 @@ async def generate_product_item_video(product_name: str, tool_context: ToolConte
             return {
                 "success": True,
                 "product_name": product_name,
+                "public_video_url": public_url,
                 "video_url": public_url,
             }
     except Exception as e:
@@ -980,6 +982,7 @@ Available Capabilities & Rules:
 14. Non-Serviceable Zip Code Memory: Use `record_non_serviceable_zipcode` to remember non-serviceable shipping zip codes in long-term Memory Bank.
 15. User Return Count Memory: Use `get_user_return_count` to retrieve the recorded return count history for a user.
 16. Generate Product Item Video: Use `generate_product_item_video` to generate a product showcase video clip using gemini-omni-flash-preview model in the global region.
+CRITICAL MANDATE: Whenever the user asks for a video, promotional video, video preview, product video, or showcase video, YOU MUST CALL THE `generate_product_item_video` TOOL. Do NOT say you cannot create videos! You HAVE the tool `generate_product_item_video` to create product videos.
 
 Tone & Style:
 - Professional, warm, and concise.
