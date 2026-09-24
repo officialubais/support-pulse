@@ -150,7 +150,7 @@ def _extract_parts(parts: list) -> list[dict]:
 async def chat(req: Request):
     body = await req.json()
     message = body.get("message", "")
-    user_id = body.get("session_id") or body.get("user_id") or "web-user"
+    user_id = body.get("user_id") or body.get("session_id") or "web-user"
     parts: list[dict] = []
 
     async with httpx.AsyncClient(headers=_auth_headers(), timeout=120) as client:
