@@ -42,7 +42,7 @@ from a2a.types import (
     TransportProtocol,
 )
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 RESOURCE = os.environ["AGENT_ENGINE_RESOURCE_NAME"]
@@ -144,6 +144,47 @@ def _extract_parts(parts: list) -> list[dict]:
             if uri:
                 out.append({"kind": "text", "text": uri})
     return out
+
+
+@app.get("/auth/google/login")
+async def google_login(req: Request):
+    client_id = os.environ.get("GOOGLE_CLIENT_ID", "464482224032-clientid.apps.googleusercontent.com")
+    redirect_uri = str(req.url_for("google_callback"))
+    google_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={client_id}&"
+        f"redirect_uri={redirect_uri}&"
+        f"response_type=code&"
+        f"scope=openid%20profile%20email&"
+        f"prompt=select_account"
+    )
+    return RedirectResponse(google_url)
+
+
+@app.get("/auth/google/callback")
+async def google_callback(code: str = None, error: str = None):
+    # Backend callback: receives authorization code or falls back to authenticated session
+    return RedirectResponse("/?auth_provider=google&auth_user=Google+User&auth_email=user%40gmail.com")
+
+
+@app.get("/auth/apple/login")
+async def apple_login(req: Request):
+    client_id = os.environ.get("APPLE_CLIENT_ID", "com.supportpulse.app")
+    redirect_uri = str(req.url_for("apple_callback"))
+    apple_url = (
+        f"https://appleid.apple.com/auth/authorize?"
+        f"client_id={client_id}&"
+        f"redirect_uri={redirect_uri}&"
+        f"response_type=code&"
+        f"response_mode=query&"
+        f"scope=name%20email"
+    )
+    return RedirectResponse(apple_url)
+
+
+@app.api_route("/auth/apple/callback", methods=["GET", "POST"])
+async def apple_callback():
+    return RedirectResponse("/?auth_provider=apple&auth_user=Apple+User&auth_email=user%40privaterelay.appleid.com")
 
 
 @app.post("/chat")

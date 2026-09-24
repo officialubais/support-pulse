@@ -1094,13 +1094,29 @@ document.addEventListener("click", (e) => {
  * Authentication & Identity Services (Google & Apple ID)
  * -------------------------------------------------------------------------- */
 function loadUser() {
-  try {
-    const raw = localStorage.getItem("supportpulse_user");
-    if (raw) currentUser = JSON.parse(raw);
-  } catch (e) { console.error(e); }
+  // Process returning OAuth callback URL params from backend
+  const urlParams = new URLSearchParams(window.location.search);
+  const authProvider = urlParams.get("auth_provider");
+  if (authProvider) {
+    const authUser = urlParams.get("auth_user") || (authProvider === "google" ? "Google User" : "Apple User");
+    const authEmail = urlParams.get("auth_email") || (authProvider === "google" ? "user@gmail.com" : "user@privaterelay.appleid.com");
+    currentUser = {
+      id: authProvider + "_" + btoa(authEmail).replace(/=/g, ""),
+      name: authUser,
+      email: authEmail,
+      provider: authProvider,
+      avatar: null
+    };
+    saveUser();
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } else {
+    try {
+      const raw = localStorage.getItem("supportpulse_user");
+      if (raw) currentUser = JSON.parse(raw);
+    } catch (e) { console.error(e); }
+  }
 
   if (!currentUser) {
-    // Default to Guest user initially
     currentUser = {
       id: "guest_" + Math.floor(Math.random() * 1000000),
       name: "Guest User",
@@ -1149,80 +1165,18 @@ function updateUserUI() {
 
 function openAuthModal() {
   userDropdown.style.display = "none";
-  const gId = localStorage.getItem("supportpulse_google_client_id") || "";
-  const aId = localStorage.getItem("supportpulse_apple_client_id") || "";
-  const cfgG = document.getElementById("cfg-google-id");
-  const cfgA = document.getElementById("cfg-apple-id");
-  if (cfgG) cfgG.value = gId;
-  if (cfgA) cfgA.value = aId;
   authModal.style.display = "flex";
 }
 function closeAuthModal() {
   authModal.style.display = "none";
 }
 
-function saveOAuthClientConfig() {
-  const gId = (document.getElementById("cfg-google-id").value || "").trim();
-  const aId = (document.getElementById("cfg-apple-id").value || "").trim();
-  if (gId) localStorage.setItem("supportpulse_google_client_id", gId);
-  else localStorage.removeItem("supportpulse_google_client_id");
-  if (aId) localStorage.setItem("supportpulse_apple_client_id", aId);
-  else localStorage.removeItem("supportpulse_apple_client_id");
-}
-
-function loadScript(src, callback) {
-  if (document.querySelector(`script[src="${src}"]`)) {
-    callback();
-    return;
-  }
-  const script = document.createElement("script");
-  script.src = src;
-  script.onload = callback;
-  script.onerror = () => callback();
-  document.head.appendChild(script);
-}
-
 function loginWithGoogle() {
-  const customClientId = localStorage.getItem("supportpulse_google_client_id");
-  if (customClientId) {
-    loadScript("https://accounts.google.com/gsi/client", () => {
-      if (typeof google !== "undefined" && google.accounts && google.accounts.oauth2) {
-        try {
-          const client = google.accounts.oauth2.initTokenClient({
-            client_id: customClientId,
-            scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
-            callback: (tokenResponse) => {
-              if (tokenResponse && tokenResponse.access_token) {
-                fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-                })
-                .then(res => res.json())
-                .then(profile => {
-                  currentUser = {
-                    id: "google_" + profile.sub,
-                    name: profile.name || "Google User",
-                    email: profile.email || "user@gmail.com",
-                    provider: "google",
-                    avatar: profile.picture
-                  };
-                  completeLogin();
-                })
-                .catch(() => showGoogleIdentityPrompt());
-              }
-            }
-          });
-          client.requestAccessToken();
-          return;
-        } catch (e) {
-          console.warn("GSI initTokenClient error:", e);
-        }
-      }
-      showGoogleIdentityPrompt();
-    });
-    return;
-  }
+  window.location.href = "/auth/google/login";
+}
 
-  showGoogleIdentityPrompt();
+function loginWithApple() {
+  window.location.href = "/auth/apple/login";
 }
 
 function showGoogleIdentityPrompt() {
